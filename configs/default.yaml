@@ -21,7 +21,7 @@ model:
 
 training:
   phase1_epochs: 10
-  phase2_epochs: 30
+  phase2_epochs: 50
   phase1_lr: 1.0e-3
   phase2_backbone_lr: 2.0e-6
   phase2_head_lr: 1.0e-4
