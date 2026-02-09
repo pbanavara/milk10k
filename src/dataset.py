@@ -108,13 +108,17 @@ def get_transforms(image_size: int, is_training: bool) -> transforms.Compose:
     """Build image transforms for training or validation."""
     if is_training:
         return transforms.Compose([
-            transforms.Resize((image_size, image_size)),
+            transforms.RandomResizedCrop(image_size, scale=(0.7, 1.0)),
             transforms.RandomHorizontalFlip(),
             transforms.RandomVerticalFlip(),
-            transforms.RandomRotation(20),
-            transforms.ColorJitter(brightness=0.2, contrast=0.2),
+            transforms.RandomRotation(30),
+            transforms.ColorJitter(
+                brightness=0.3, contrast=0.3, saturation=0.2, hue=0.05
+            ),
+            transforms.RandAugment(num_ops=2, magnitude=9),
             transforms.ToTensor(),
             transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),
+            transforms.RandomErasing(p=0.25, scale=(0.02, 0.15)),
         ])
     else:
         return transforms.Compose([
