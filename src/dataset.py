@@ -189,11 +189,6 @@ class MILK10kDataset(Dataset):
             "concepts": concepts,
             "diagnosis": diagnosis,
             "skin_tone": skin_tone,
-            "metadata": {
-                "age_approx": row.get("age_approx", None),
-                "sex": row.get("sex", None),
-                "site": row.get("site", None),
-            },
         }
 
 
