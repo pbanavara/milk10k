@@ -15,7 +15,7 @@ model:
   fusion_dim: 512
   num_concepts: 7
   num_classes: 11
-  variant: "strict"
+  variant: "hybrid"
   residual_dim: 16
   dropout: 0.3
 
