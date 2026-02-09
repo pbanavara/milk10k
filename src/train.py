@@ -8,13 +8,17 @@ Usage:
 """
 
 import argparse
+import logging
 import os
+from datetime import datetime
 
 import numpy as np
 import torch
 import torch.nn as nn
 from sklearn.metrics import f1_score
 from tqdm import tqdm
+
+logger = logging.getLogger(__name__)
 
 try:
     import wandb
@@ -239,27 +243,47 @@ def build_scheduler(optimizer: torch.optim.Optimizer, total_steps: int):
     return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
 
 
+def _setup_logging(save_dir: str) -> None:
+    """Configure logging to console and file."""
+    os.makedirs(save_dir, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = os.path.join(save_dir, f"train_{timestamp}.log")
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(log_file),
+        ],
+    )
+    logger.info(f"Logging to {log_file}")
+
+
 def train(config: dict) -> None:
     """Full two-phase training pipeline."""
+    save_dir = config["logging"]["save_dir"]
+    _setup_logging(save_dir)
+
+    logger.info(f"Config: {config}")
     set_seed(config["data"]["seed"])
     device = get_device()
-    save_dir = config["logging"]["save_dir"]
-    os.makedirs(save_dir, exist_ok=True)
 
-    print(f"Device: {device}")
+    logger.info(f"Device: {device}")
     if device.type == "cuda":
         gpu_name = torch.cuda.get_device_name(0)
         gpu_mem = torch.cuda.get_device_properties(0).total_memory / (1024**3)
-        print(f"GPU: {gpu_name} ({gpu_mem:.1f} GB)")
+        logger.info(f"GPU: {gpu_name} ({gpu_mem:.1f} GB)")
 
     # Data
     train_loader, val_loader, _ = get_dataloaders(config)
-    print(f"Train batches: {len(train_loader)}, Val batches: {len(val_loader)}")
+    logger.info(f"Train batches: {len(train_loader)}, Val batches: {len(val_loader)}")
 
     # Model
     model = get_model(config)
     model = model.to(device)
-    print(f"Model variant: {config['model']['variant']}")
+    logger.info(f"Model variant: {config['model']['variant']}")
 
     # Loss functions
     concept_criterion = nn.MSELoss()
@@ -268,7 +292,7 @@ def train(config: dict) -> None:
 
     # AMP setup — bf16 on Hopper needs no GradScaler, fp16 on older GPUs does
     use_amp, amp_dtype, scaler = _resolve_amp(config, device)
-    print(f"AMP: {use_amp}, dtype: {amp_dtype}, GradScaler: {scaler is not None}")
+    logger.info(f"AMP: {use_amp}, dtype: {amp_dtype}, GradScaler: {scaler is not None}")
 
     # W&B init
     if HAS_WANDB:
@@ -282,7 +306,7 @@ def train(config: dict) -> None:
     patience = config["training"]["early_stopping_patience"]
 
     # ---- Phase 1: Frozen backbone ----
-    print("\n=== Phase 1: Frozen backbone ===")
+    logger.info("=== Phase 1: Frozen backbone ===")
     model.freeze_backbone()
     optimizer = build_optimizer(model, config, phase=1)
 
@@ -296,7 +320,7 @@ def train(config: dict) -> None:
         )
 
         metrics = {**train_metrics, **val_metrics, "epoch": epoch, "phase": 1}
-        _log_epoch(epoch, metrics)
+        _log_epoch(epoch, metrics, optimizer)
 
         if val_metrics["val/macro_f1"] > best_f1:
             best_f1 = val_metrics["val/macro_f1"]
@@ -305,14 +329,16 @@ def train(config: dict) -> None:
                 model, optimizer, epoch, metrics,
                 os.path.join(save_dir, "best_model.pt"),
             )
+            logger.info(f"  New best model saved (F1: {best_f1:.4f})")
         else:
             patience_counter += 1
+            logger.info(f"  No improvement ({patience_counter}/{patience})")
             if patience_counter >= patience:
-                print(f"Early stopping at epoch {epoch}")
+                logger.info(f"Early stopping at epoch {epoch}")
                 break
 
     # ---- Phase 2: Full fine-tuning ----
-    print("\n=== Phase 2: Full fine-tuning ===")
+    logger.info("=== Phase 2: Full fine-tuning ===")
     model.unfreeze_backbone()
     optimizer = build_optimizer(model, config, phase=2)
     total_steps = config["training"]["phase2_epochs"] * len(train_loader)
@@ -332,7 +358,7 @@ def train(config: dict) -> None:
         )
 
         metrics = {**train_metrics, **val_metrics, "epoch": epoch, "phase": 2}
-        _log_epoch(epoch, metrics)
+        _log_epoch(epoch, metrics, optimizer)
 
         if val_metrics["val/macro_f1"] > best_f1:
             best_f1 = val_metrics["val/macro_f1"]
@@ -341,27 +367,39 @@ def train(config: dict) -> None:
                 model, optimizer, epoch, metrics,
                 os.path.join(save_dir, "best_model.pt"),
             )
+            logger.info(f"  New best model saved (F1: {best_f1:.4f})")
         else:
             patience_counter += 1
+            logger.info(f"  No improvement ({patience_counter}/{patience})")
             if patience_counter >= patience:
-                print(f"Early stopping at epoch {epoch}")
+                logger.info(f"Early stopping at epoch {epoch}")
                 break
 
-    print(f"\nTraining complete. Best macro F1: {best_f1:.4f}")
+    logger.info(f"Training complete. Best macro F1: {best_f1:.4f}")
 
     if HAS_WANDB:
         wandb.finish()
 
 
-def _log_epoch(epoch: int, metrics: dict) -> None:
-    """Print and optionally log to W&B."""
+def _log_epoch(epoch: int, metrics: dict, optimizer: torch.optim.Optimizer) -> None:
+    """Log metrics to logger and optionally to W&B."""
     phase = metrics.get("phase", "?")
-    print(
-        f"  Phase {phase} | Epoch {epoch:3d} | "
+    lr = optimizer.param_groups[0]["lr"]
+    logger.info(
+        f"Phase {phase} | Epoch {epoch:3d} | "
         f"Loss: {metrics['train/loss']:.4f} | "
+        f"Concept: {metrics['train/concept_loss']:.4f} | "
+        f"Cls: {metrics['train/cls_loss']:.4f} | "
         f"Val Loss: {metrics['val/loss']:.4f} | "
-        f"Val F1: {metrics['val/macro_f1']:.4f}"
+        f"Val F1: {metrics['val/macro_f1']:.4f} | "
+        f"LR: {lr:.2e}"
     )
+    # Log per-class F1 every 5 epochs
+    if epoch % 5 == 0:
+        per_class = {k: v for k, v in metrics.items() if k.startswith("val/f1_")}
+        if per_class:
+            parts = [f"{k.replace('val/f1_', '')}: {v:.3f}" for k, v in per_class.items()]
+            logger.info(f"  Per-class F1: {' | '.join(parts)}")
     if HAS_WANDB and wandb.run is not None:
         wandb.log(metrics)
 
