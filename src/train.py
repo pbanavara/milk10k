@@ -64,6 +64,7 @@ def train_one_epoch(
     config: dict,
     scaler: torch.amp.GradScaler | None = None,
     amp_dtype: torch.dtype = torch.float32,
+    scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
 ) -> dict:
     """Run one training epoch. Returns dict of average losses."""
     model.train()
@@ -111,6 +112,10 @@ def train_one_epoch(
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
             optimizer.step()
+
+        # Step scheduler per batch (not per epoch) for correct warmup + cosine
+        if scheduler is not None:
+            scheduler.step()
 
         total_loss += loss.item()
         total_concept_loss += loss_concept.item()
@@ -318,10 +323,8 @@ def train(config: dict) -> None:
     for epoch in range(1, config["training"]["phase2_epochs"] + 1):
         train_metrics = train_one_epoch(
             model, train_loader, optimizer, concept_criterion, cls_criterion,
-            device, config, scaler, amp_dtype,
+            device, config, scaler, amp_dtype, scheduler,
         )
-        # Step scheduler per epoch
-        scheduler.step()
 
         val_metrics = validate(
             model, val_loader, concept_criterion, cls_criterion, device, config
