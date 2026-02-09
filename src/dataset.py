@@ -111,7 +111,9 @@ def get_transforms(image_size: int, is_training: bool) -> transforms.Compose:
             transforms.RandomResizedCrop(image_size, scale=(0.7, 1.0)),
             transforms.RandomHorizontalFlip(),
             transforms.RandomVerticalFlip(),
-            transforms.RandomRotation(30),
+            transforms.RandomAffine(
+                degrees=30, translate=(0.1, 0.1), scale=(0.9, 1.1), shear=10
+            ),
             transforms.ColorJitter(
                 brightness=0.3, contrast=0.3, saturation=0.2, hue=0.05
             ),
