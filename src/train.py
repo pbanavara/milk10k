@@ -277,7 +277,7 @@ def train(config: dict) -> None:
         logger.info(f"GPU: {gpu_name} ({gpu_mem:.1f} GB)")
 
     # Data
-    train_loader, val_loader, _ = get_dataloaders(config)
+    train_loader, val_loader, full_df = get_dataloaders(config)
     logger.info(f"Train batches: {len(train_loader)}, Val batches: {len(val_loader)}")
 
     # Model
@@ -285,10 +285,19 @@ def train(config: dict) -> None:
     model = model.to(device)
     logger.info(f"Model variant: {config['model']['variant']}")
 
-    # Loss functions
+    # Loss functions — inverse-frequency class weights for rare class support
     concept_criterion = nn.MSELoss()
     label_smoothing = config["training"].get("label_smoothing", 0.0)
-    cls_criterion = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
+
+    class_counts = full_df[DIAGNOSIS_COLUMNS].sum().values
+    class_weights = 1.0 / np.maximum(class_counts, 1.0)
+    class_weights = class_weights / class_weights.sum() * len(class_weights)
+    class_weights = torch.tensor(class_weights, dtype=torch.float32).to(device)
+    logger.info(f"Class weights: {dict(zip(DIAGNOSIS_COLUMNS, class_weights.tolist()))}")
+
+    cls_criterion = nn.CrossEntropyLoss(
+        weight=class_weights, label_smoothing=label_smoothing
+    )
 
     # AMP setup — bf16 on Hopper needs no GradScaler, fp16 on older GPUs does
     use_amp, amp_dtype, scaler = _resolve_amp(config, device)
