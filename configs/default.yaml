@@ -8,6 +8,8 @@ data:
   num_workers: 8
   val_split: 0.2
   seed: 42
+  test_metadata_csv: "./data/MILK10k_Test_Metadata.csv"
+  test_images_dir: "./data/MILK10k_Test_Input"
 
 model:
   backbone: "dinov2_vitl14"

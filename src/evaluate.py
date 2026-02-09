@@ -17,7 +17,7 @@ from scipy.stats import pearsonr
 from sklearn.metrics import classification_report, confusion_matrix, f1_score
 from tqdm import tqdm
 
-from src.dataset import DIAGNOSIS_COLUMNS, MONET_COLUMNS, get_dataloaders
+from src.dataset import DIAGNOSIS_COLUMNS, MONET_COLUMNS, get_dataloaders, get_test_dataloader
 from src.model import get_model
 from src.utils import get_device, load_checkpoint, load_config, parse_overrides, set_seed
 
@@ -245,6 +245,24 @@ def evaluate(config: dict, checkpoint_path: str) -> dict:
     return all_metrics
 
 
+def submit(config: dict, checkpoint_path: str, output_path: str) -> None:
+    """Generate benchmark submission on test set."""
+    set_seed(config["data"]["seed"])
+    device = get_device()
+
+    # Test data
+    test_loader, test_df = get_test_dataloader(config)
+    print(f"Test set: {len(test_df)} lesions, {len(test_loader)} batches")
+
+    # Model
+    model = get_model(config)
+    load_checkpoint(checkpoint_path, model)
+    model = model.to(device)
+
+    # Generate submission
+    generate_submission(model, test_loader, device, output_path)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Evaluate MILK10k CBM")
     parser.add_argument(
@@ -255,13 +273,25 @@ def main():
         help="Path to model checkpoint",
     )
     parser.add_argument(
+        "--submit", action="store_true",
+        help="Generate benchmark submission on test set instead of evaluating",
+    )
+    parser.add_argument(
+        "--output", type=str, default="outputs/submission.csv",
+        help="Path for submission CSV (used with --submit)",
+    )
+    parser.add_argument(
         "--overrides", nargs="*", default=[],
     )
     args = parser.parse_args()
 
     overrides = parse_overrides(args.overrides) if args.overrides else None
     config = load_config(args.config, overrides)
-    evaluate(config, args.checkpoint)
+
+    if args.submit:
+        submit(config, args.checkpoint, args.output)
+    else:
+        evaluate(config, args.checkpoint)
 
 
 if __name__ == "__main__":

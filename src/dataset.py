@@ -250,3 +250,93 @@ def get_dataloaders(config: dict) -> tuple[DataLoader, DataLoader, pd.DataFrame]
     )
 
     return train_loader, val_loader, df
+
+
+class MILK10kTestDataset(Dataset):
+    """Test dataset for benchmark submission.
+
+    No ground truth labels. Images are in nested dirs: images_dir/{lesion_id}/{isic_id}.jpg
+    """
+
+    def __init__(
+        self,
+        df: pd.DataFrame,
+        images_dir: str,
+        transform: transforms.Compose | None = None,
+    ):
+        self.df = df.reset_index(drop=True)
+        self.images_dir = images_dir
+        self.transform = transform
+
+    def __len__(self) -> int:
+        return len(self.df)
+
+    def __getitem__(self, idx: int) -> dict:
+        row = self.df.iloc[idx]
+        lesion_id = row["lesion_id"]
+
+        clinical_path = os.path.join(
+            self.images_dir, lesion_id, f"{row['clinical_isic_id']}.jpg"
+        )
+        dermoscopic_path = os.path.join(
+            self.images_dir, lesion_id, f"{row['dermoscopic_isic_id']}.jpg"
+        )
+
+        clinical_img = Image.open(clinical_path).convert("RGB")
+        dermoscopic_img = Image.open(dermoscopic_path).convert("RGB")
+
+        if self.transform:
+            clinical_img = self.transform(clinical_img)
+            dermoscopic_img = self.transform(dermoscopic_img)
+
+        # MONET concepts from dermoscopic image (for concept prediction, no supervision)
+        concepts = torch.tensor(
+            row[MONET_COLUMNS].values.astype(np.float32), dtype=torch.float32
+        )
+
+        return {
+            "lesion_id": lesion_id,
+            "clinical_image": clinical_img,
+            "dermoscopic_image": dermoscopic_img,
+            "concepts": concepts,
+        }
+
+
+def build_test_dataframe(metadata_csv: str) -> pd.DataFrame:
+    """Build lesion-level test dataframe (no ground truth)."""
+    meta = pd.read_csv(metadata_csv)
+
+    clinical = meta[meta["image_type"] == "clinical: close-up"].copy()
+    dermoscopic = meta[meta["image_type"] == "dermoscopic"].copy()
+
+    clinical_cols = clinical[["lesion_id", "isic_id"]].rename(
+        columns={"isic_id": "clinical_isic_id"}
+    )
+    derm_cols = dermoscopic[
+        ["lesion_id", "isic_id"] + MONET_COLUMNS
+    ].rename(columns={"isic_id": "dermoscopic_isic_id"})
+
+    merged = pd.merge(clinical_cols, derm_cols, on="lesion_id", how="inner")
+    return merged
+
+
+def get_test_dataloader(config: dict) -> tuple[DataLoader, pd.DataFrame]:
+    """Build test DataLoader for benchmark submission."""
+    data_cfg = config["data"]
+    test_metadata = data_cfg["test_metadata_csv"]
+    test_images_dir = data_cfg["test_images_dir"]
+
+    df = build_test_dataframe(test_metadata)
+    transform = get_transforms(data_cfg["image_size"], is_training=False)
+    dataset = MILK10kTestDataset(df, test_images_dir, transform)
+
+    loader = DataLoader(
+        dataset,
+        batch_size=data_cfg["batch_size"],
+        shuffle=False,
+        num_workers=data_cfg["num_workers"],
+        pin_memory=True,
+        drop_last=False,
+    )
+
+    return loader, df
