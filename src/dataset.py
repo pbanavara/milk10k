@@ -12,7 +12,7 @@ import pandas as pd
 import torch
 from PIL import Image
 from sklearn.model_selection import StratifiedShuffleSplit
-from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
+from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 
 MONET_COLUMNS = [
@@ -231,20 +231,11 @@ def get_dataloaders(config: dict) -> tuple[DataLoader, DataLoader, pd.DataFrame]
     train_dataset = MILK10kDataset(train_df, data_cfg["images_dir"], train_transform)
     val_dataset = MILK10kDataset(val_df, data_cfg["images_dir"], val_transform)
 
-    # Oversampling: give rare classes more draws per epoch
-    train_labels = train_df[DIAGNOSIS_COLUMNS].values.argmax(axis=1)
-    class_counts = np.bincount(train_labels, minlength=len(DIAGNOSIS_COLUMNS))
-    class_weights = 1.0 / np.maximum(class_counts, 1).astype(np.float64)
-    sample_weights = class_weights[train_labels]
-    sampler = WeightedRandomSampler(
-        weights=sample_weights, num_samples=len(train_dataset), replacement=True
-    )
-
     # DataLoaders
     train_loader = DataLoader(
         train_dataset,
         batch_size=data_cfg["batch_size"],
-        sampler=sampler,
+        shuffle=True,
         num_workers=data_cfg["num_workers"],
         pin_memory=True,
         drop_last=True,
