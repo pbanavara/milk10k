@@ -48,14 +48,17 @@ class ConceptBottleneckModel(nn.Module):
             self.concept_head = nn.Sequential(
                 nn.Linear(fusion_dim, 256),
                 nn.ReLU(),
-                nn.Dropout(0.2),
+                nn.Dropout(dropout),
                 nn.Linear(256, num_concepts),
                 nn.Sigmoid(),
             )
 
             if variant == "hybrid":
                 # Residual path bypassing the bottleneck
-                self.residual_head = nn.Linear(fusion_dim, residual_dim)
+                self.residual_head = nn.Sequential(
+                    nn.Linear(fusion_dim, residual_dim),
+                    nn.Dropout(dropout),
+                )
                 cls_input_dim = num_concepts + residual_dim
             else:
                 self.residual_head = None
@@ -65,7 +68,7 @@ class ConceptBottleneckModel(nn.Module):
             self.classification_head = nn.Sequential(
                 nn.Linear(cls_input_dim, 64),
                 nn.ReLU(),
-                nn.Dropout(0.2),
+                nn.Dropout(dropout),
                 nn.Linear(64, num_classes),
             )
 
@@ -76,7 +79,7 @@ class ConceptBottleneckModel(nn.Module):
             self.classification_head = nn.Sequential(
                 nn.Linear(fusion_dim, 64),
                 nn.ReLU(),
-                nn.Dropout(0.2),
+                nn.Dropout(dropout),
                 nn.Linear(64, num_classes),
             )
         else:

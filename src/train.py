@@ -263,7 +263,8 @@ def train(config: dict) -> None:
 
     # Loss functions
     concept_criterion = nn.MSELoss()
-    cls_criterion = nn.CrossEntropyLoss()
+    label_smoothing = config["training"].get("label_smoothing", 0.0)
+    cls_criterion = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
 
     # AMP setup — bf16 on Hopper needs no GradScaler, fp16 on older GPUs does
     use_amp, amp_dtype, scaler = _resolve_amp(config, device)
