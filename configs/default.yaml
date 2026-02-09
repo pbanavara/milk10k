@@ -1,0 +1,39 @@
+data:
+  images_dir: "./data/images_train"
+  metadata_csv: "./data/MILK10k_Training_Metadata.csv"
+  groundtruth_csv: "./data/MILK10k_Training_GroundTruth.csv"
+  supplement_csv: "./data/MILK10k_Training_Supplement.csv"
+  image_size: 224
+  batch_size: 64
+  num_workers: 8
+  val_split: 0.2
+  seed: 42
+
+model:
+  backbone: "dinov2_vitl14"
+  backbone_dim: 1024
+  fusion_dim: 512
+  num_concepts: 7
+  num_classes: 11
+  variant: "strict"
+  residual_dim: 16
+  dropout: 0.3
+
+training:
+  phase1_epochs: 10
+  phase2_epochs: 30
+  phase1_lr: 1.0e-3
+  phase2_backbone_lr: 1.0e-5
+  phase2_head_lr: 1.0e-4
+  weight_decay: 0.05
+  concept_loss_weight: 1.0
+  classification_loss_weight: 1.0
+  grad_clip_norm: 1.0
+  early_stopping_patience: 7
+  use_amp: true
+  amp_dtype: "bfloat16"            # bfloat16 for Hopper/GH200, float16 for older GPUs
+
+logging:
+  project_name: "milk10k-cbm"
+  save_dir: "./outputs"
+  log_interval: 10
