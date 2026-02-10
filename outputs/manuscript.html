@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page {
+    size: letter;
+    margin: 1in 1in 1in 1in;
+  }
+  body {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 10pt;
+    line-height: 1.4;
+    color: #000;
+  }
+  h1 {
+    font-size: 16pt;
+    text-align: center;
+    margin-bottom: 4pt;
+    font-weight: bold;
+  }
+  .authors {
+    text-align: center;
+    font-size: 11pt;
+    margin-bottom: 2pt;
+  }
+  .affiliation {
+    text-align: center;
+    font-size: 9pt;
+    font-style: italic;
+    margin-bottom: 16pt;
+  }
+  h2 {
+    font-size: 12pt;
+    font-weight: bold;
+    margin-top: 14pt;
+    margin-bottom: 4pt;
+    border-bottom: 0.5pt solid #888;
+    padding-bottom: 2pt;
+  }
+  h3 {
+    font-size: 10.5pt;
+    font-weight: bold;
+    margin-top: 10pt;
+    margin-bottom: 3pt;
+  }
+  p {
+    margin: 4pt 0;
+    text-align: justify;
+  }
+  table {
+    border-collapse: collapse;
+    margin: 8pt auto;
+    font-size: 9pt;
+  }
+  table caption {
+    font-size: 9pt;
+    font-weight: bold;
+    margin-bottom: 4pt;
+    text-align: left;
+  }
+  th, td {
+    border: 0.5pt solid #333;
+    padding: 3pt 6pt;
+    text-align: center;
+  }
+  th {
+    background-color: #e8e8e8;
+    font-weight: bold;
+  }
+  td.left { text-align: left; }
+  .abstract {
+    margin: 0 20pt;
+    font-size: 9.5pt;
+  }
+  .abstract-title {
+    font-weight: bold;
+    font-size: 10pt;
+  }
+  .small {
+    font-size: 8.5pt;
+  }
+  .figure-caption {
+    font-size: 9pt;
+    text-align: center;
+    margin-top: 4pt;
+    margin-bottom: 8pt;
+  }
+  .two-col {
+    column-count: 2;
+    column-gap: 18pt;
+  }
+  ul, ol {
+    margin: 4pt 0 4pt 18pt;
+    padding: 0;
+  }
+  li {
+    margin-bottom: 2pt;
+  }
+  .ref {
+    font-size: 8.5pt;
+    margin-left: 18pt;
+    text-indent: -18pt;
+    margin-bottom: 3pt;
+  }
+</style>
+</head>
+<body>
+
+<h1>Interpretable Skin Lesion Classification via Concept Bottleneck Models on the MILK10k Dataset</h1>
+
+<div class="authors">Pradeep Banavara</div>
+<div class="affiliation">Independent Researcher</div>
+
+<div class="abstract">
+<p><span class="abstract-title">Abstract.</span>
+We present a Concept Bottleneck Model (CBM) for skin lesion diagnosis on the MILK10k benchmark, which comprises 5,240 lesions with paired clinical close-up and dermoscopic images across 11 diagnostic categories. Our hybrid CBM architecture uses a shared DINOv2 ViT-L/14 backbone to extract features from both image modalities, predicts 7 MONET dermoscopic concepts as an interpretable bottleneck, and combines concept predictions with a learned residual vector for final diagnosis classification. Through systematic iterative development&mdash;progressing from a strict CBM (F1: 0.23) through architectural changes, loss rebalancing, data augmentation, and class weighting&mdash;we achieve a best macro F1 of 0.5129 on the validation set. We describe our design decisions, failure modes encountered, and lessons learned in training CBMs on highly imbalanced, small-scale medical imaging datasets. All experiments were conducted on an NVIDIA GH200 using bf16 mixed precision.</p>
+</div>
+
+<h2>1. Introduction</h2>
+
+<p>Concept Bottleneck Models (CBMs) [1] offer an interpretable alternative to black-box classifiers by forcing predictions through a set of human-understandable intermediate concepts. In dermatology, where clinical decision-making already relies on structured dermoscopic features (e.g., pigment network patterns, vascular structures, regression areas), CBMs are a natural fit: the model first predicts clinically meaningful attributes, then uses these to classify the lesion.</p>
+
+<p>The MILK10k dataset presents a challenging benchmark: 5,240 lesions with paired clinical close-up and dermoscopic images (10,480 total), annotated with 7 MONET dermoscopic concept scores and 11 diagnostic labels. The class distribution is heavily imbalanced, ranging from 2,522 samples for basal cell carcinoma (BCC) to just 9 for other malignancies (MAL_OTH). This paper describes our CBM approach, the iterative development process, and the design decisions that led to our final model.</p>
+
+<h2>2. Method</h2>
+
+<h3>2.1 Architecture</h3>
+
+<p>Our model employs a <b>shared DINOv2 ViT-L/14</b> backbone (304M parameters) to process both image modalities. The CLS token embeddings from clinical and dermoscopic images (each 1024-d) are concatenated and projected through a fusion MLP to a 512-dimensional representation. This fused representation feeds three parallel heads:</p>
+
+<ul>
+<li><b>Concept head:</b> A two-layer MLP (512&rarr;256&rarr;7) with sigmoid activation, predicting 7 MONET dermoscopic concept scores in [0, 1].</li>
+<li><b>Residual head (hybrid only):</b> A linear projection (512&rarr;16) capturing non-concept information that bypasses the interpretable bottleneck.</li>
+<li><b>Classification head:</b> A two-layer MLP (23&rarr;64&rarr;11) taking the concatenation of 7 concept predictions and 16 residual dimensions as input.</li>
+</ul>
+
+<p>We explored three CBM variants: <b>strict</b> (classification sees only concepts), <b>hybrid</b> (concepts + residual), and <b>baseline</b> (no bottleneck). The hybrid variant was selected as the final architecture based on validation performance.</p>
+
+<h3>2.2 Two-Phase Training</h3>
+
+<p>Training proceeds in two phases to balance feature adaptation with head optimization:</p>
+
+<p><b>Phase 1 (10 epochs):</b> The DINOv2 backbone is frozen. Only the fusion MLP, concept head, residual head, and classification head are trained with AdamW (lr=1e-3, weight decay=0.05). This allows the lightweight heads to calibrate against the pretrained backbone's feature space.</p>
+
+<p><b>Phase 2 (up to 50 epochs):</b> The full model is fine-tuned with differential learning rates: backbone at 2e-6, heads at 1e-4. A cosine annealing schedule with 5% linear warmup (stepped per batch) controls the learning rate. Early stopping with patience 7 (based on macro F1) prevents overfitting.</p>
+
+<h3>2.3 Loss Function</h3>
+
+<p>The joint loss combines concept supervision and classification:</p>
+
+<p style="text-align: center; margin: 8pt 0;"><i>L</i> = &alpha; &middot; MSE(concepts) + &beta; &middot; CE(classification)</p>
+
+<p>where &alpha;=5.0 and &beta;=1.0. The elevated concept weight was necessary to prevent classification gradients from dominating during Phase 2 fine-tuning (Section 3.2). The cross-entropy loss uses <b>inverse-frequency class weighting</b> to address the severe class imbalance: each class weight is proportional to 1/<i>n<sub>k</sub></i>, normalized to sum to the number of classes. This amplifies the gradient contribution of rare classes (e.g., MAL_OTH weight: 5.95 vs. BCC weight: 0.02).</p>
+
+<h3>2.4 Data Pipeline</h3>
+
+<p>Patient-level stratified splitting (80/20) ensures no lesion appears in both train and validation sets. The training augmentation pipeline applies: RandomResizedCrop (224, scale 0.7&ndash;1.0), random horizontal and vertical flips, RandomAffine (rotation &plusmn;30&deg;, translation 10%, scale 0.9&ndash;1.1, shear &plusmn;10&deg;), ColorJitter (brightness 0.3, contrast 0.3, saturation 0.2, hue 0.05), RandAugment (2 ops, magnitude 9), and RandomErasing (p=0.25). Validation uses Resize(224) followed by CenterCrop(224). All images are normalized to ImageNet statistics.</p>
+
+<h3>2.5 Infrastructure</h3>
+
+<p>All experiments ran on an NVIDIA GH200 480GB (94.5 GB HBM3 GPU memory) with bfloat16 mixed-precision training. The GH200's native bf16 support (same exponent range as fp32) eliminates the need for gradient scaling, simplifying the AMP pipeline. Batch size was 64 with 8 data-loading workers.</p>
+
+<h2>3. Iterative Development and Ablations</h2>
+
+<p>Our development followed a systematic trajectory, with each iteration targeting a specific bottleneck. Table 1 summarizes the key configurations and their results.</p>
+
+<table>
+<caption>Table 1: Iterative development trajectory. Each row represents a key experimental change. Macro F1 is on the validation set.</caption>
+<tr>
+  <th>Iteration</th>
+  <th>Key Change</th>
+  <th>Val Macro F1</th>
+  <th>Outcome</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td class="left">Strict CBM, scheduler bug (epoch-level stepping)</td>
+  <td>0.23</td>
+  <td class="left">Poor: LR never exceeded 30% of target</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td class="left">Strict CBM, scheduler fixed (batch-level)</td>
+  <td>0.27</td>
+  <td class="left">Moderate improvement</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td class="left">Switch to hybrid variant</td>
+  <td>0.29</td>
+  <td class="left">Residual path helps classification</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td class="left">concept_loss_weight 1.0&rarr;5.0, backbone LR 1e-5&rarr;2e-6</td>
+  <td>0.47</td>
+  <td class="left">Major gain: concept head no longer overwhelmed</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td class="left">Strong regularization (dropout 0.5, weight_decay 0.1, label_smoothing 0.1)</td>
+  <td>0.24</td>
+  <td class="left"><b>Failure:</b> severe underfitting</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td class="left">Reverted to light regularization (dropout 0.2, no label smoothing)</td>
+  <td>0.47</td>
+  <td class="left">Recovered</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td class="left">Data augmentation (RandAugment, RandomAffine, RandomErasing)</td>
+  <td>0.48</td>
+  <td class="left">Modest gain, better generalization</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td class="left">Inverse-frequency class weighting in CE loss</td>
+  <td>0.50</td>
+  <td class="left">Rare classes improved (DF: 0.14&rarr;0.50, INF: 0&rarr;0.22)</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td class="left">WeightedRandomSampler for oversampling</td>
+  <td>0.31</td>
+  <td class="left"><b>Failure:</b> too aggressive, BCC F1 collapsed to 0</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td class="left">Extended Phase 2 to 50 epochs (from 30)</td>
+  <td><b>0.51</b></td>
+  <td class="left">Best result; early stopped at epoch 37</td>
+</tr>
+</table>
+
+<h3>3.1 Strict vs. Hybrid CBM</h3>
+
+<p>The strict CBM achieved only 0.23&ndash;0.27 macro F1, constrained by the 7-dimensional bottleneck. With only 7 concept features visible to the classification head, discriminating among 11 classes (some with <100 samples) proved insufficient. The hybrid variant adds a 16-dimensional learned residual, providing the classifier with 23 total input features. This nearly doubled performance, confirming that not all diagnostic information is captured by the MONET concept annotations.</p>
+
+<h3>3.2 Concept Loss Rebalancing</h3>
+
+<p>A critical failure mode emerged during Phase 2 fine-tuning: concept MSE loss (~0.08) was an order of magnitude smaller than classification CE loss (~1.0). When the backbone was unfrozen, classification gradients dominated, causing the concept head to regress. Increasing the concept loss weight from 1.0 to 5.0 and reducing the backbone learning rate from 1e-5 to 2e-6 resolved this, yielding the single largest F1 improvement (+0.20). This highlights a known challenge in multi-task learning where loss magnitude imbalances can destabilize shared representations.</p>
+
+<h3>3.3 Regularization: Less is More</h3>
+
+<p>Counter-intuitively, aggressive regularization severely hurt performance on this small dataset. Increasing dropout from 0.2 to 0.5 with weight decay 0.1 and label smoothing 0.1 caused the model to underfit, dropping F1 from 0.47 to 0.24. The effective strategy was minimal regularization (dropout 0.2, weight decay 0.05, no label smoothing) combined with data augmentation for implicit regularization. The key insight: with only 4,192 training lesions, the model needs maximum capacity to learn discriminative features before any regularization is applied.</p>
+
+<h3>3.4 Class Imbalance Handling</h3>
+
+<p>Two approaches were evaluated. <b>Inverse-frequency class weighting</b> in the CE loss improved rare-class F1 substantially (DF: 0.14&rarr;0.50, INF: 0&rarr;0.22, VASC: 0.55&rarr;0.67) without degrading dominant classes. <b>WeightedRandomSampler</b> for batch-level oversampling was too aggressive: equalizing class frequencies in each batch caused BCC (the largest class) to collapse from F1 0.89 to 0.00, with severe overfitting (train loss 0.05 vs. val loss 2.4). Loss-level weighting proved far more stable than sampling-level balancing for this degree of imbalance.</p>
+
+<h2>4. Results</h2>
+
+<p>The final model (hybrid CBM, 50 Phase 2 epochs, class-weighted CE, full augmentation) achieved <b>0.5129 macro F1</b> on the validation set, early-stopping at epoch 37. Table 2 reports per-class F1 at the best checkpoint.</p>
+
+<table>
+<caption>Table 2: Per-class validation F1 at best checkpoint (epoch 37, macro F1 = 0.5129).</caption>
+<tr>
+  <th>Class</th>
+  <th>F1</th>
+  <th>Train N</th>
+  <th>Class</th>
+  <th>F1</th>
+  <th>Train N</th>
+</tr>
+<tr>
+  <td class="left">BCC</td><td>0.859</td><td>2,522</td>
+  <td class="left">NV</td><td>0.785</td><td>745</td>
+</tr>
+<tr>
+  <td class="left">SCCKA</td><td>0.685</td><td>473</td>
+  <td class="left">VASC</td><td>0.636</td><td>47</td>
+</tr>
+<tr>
+  <td class="left">MEL</td><td>0.615</td><td>449</td>
+  <td class="left">AKIEC</td><td>0.544</td><td>302</td>
+</tr>
+<tr>
+  <td class="left">BKL</td><td>0.477</td><td>543</td>
+  <td class="left">BEN_OTH</td><td>0.353</td><td>44</td>
+</tr>
+<tr>
+  <td class="left">DF</td><td>0.400</td><td>52</td>
+  <td class="left">INF</td><td>0.105</td><td>50</td>
+</tr>
+<tr>
+  <td class="left" colspan="2">MAL_OTH</td><td>0.000</td>
+  <td class="left" colspan="2">(9 samples)</td><td>&mdash;</td>
+</tr>
+</table>
+
+<p>Performance correlates with class frequency, with a notable exception: VASC (47 samples) achieves 0.636 F1, likely due to distinctive vascular morphology. MAL_OTH (9 samples) remains unresolvable at this dataset scale. The concept head achieves MSE of ~0.018 and positive Pearson correlations across all 7 MONET concepts, confirming meaningful intermediate representations.</p>
+
+<h2>5. Discussion and Limitations</h2>
+
+<p><b>Interpretability trade-off.</b> The hybrid CBM sacrifices full interpretability for performance. The 16-dimensional residual path is opaque, meaning only the 7-concept pathway is directly interpretable. A strict CBM maintains full transparency but at a significant performance cost (&minus;0.24 macro F1). For clinical deployment, the hybrid variant offers a practical compromise: clinicians can inspect predicted concept values for a "reason check" while benefiting from the residual's added discriminative power.</p>
+
+<p><b>Dataset limitations.</b> With 5,240 lesions, MILK10k is small by modern deep learning standards. The extreme imbalance (281:1 ratio between BCC and MAL_OTH) makes certain classes fundamentally unlearnable. The 7 MONET concepts, while clinically meaningful, may not capture all diagnostic features needed for 11-class discrimination&mdash;evidenced by the strict CBM's poor performance.</p>
+
+<p><b>Submission format.</b> Our final submission uses sigmoid activation (independent per-class probabilities) rather than softmax, allowing the model to express uncertainty across multiple diagnostic categories simultaneously. This is clinically appropriate, as lesions may exhibit features of multiple conditions.</p>
+
+<h2>6. Conclusion</h2>
+
+<p>We demonstrated that a hybrid CBM with a DINOv2 backbone can achieve competitive classification performance while maintaining partial interpretability through dermoscopic concept predictions. The key lessons from our iterative development are: (1) loss magnitude balancing is critical in multi-task CBMs, (2) minimal regularization with aggressive augmentation outperforms strong regularization on small medical datasets, and (3) loss-level class weighting is more stable than sampling-level balancing under extreme imbalance. Our final model achieves 0.5129 macro F1 with meaningful concept predictions across all 7 MONET features.</p>
+
+<h2>References</h2>
+
+<p class="ref">[1] Koh, P.W., Nguyen, T., Tang, Y.S., Mussmann, S., Pierson, E., Kim, B. and Liang, P., 2020. Concept bottleneck models. <i>ICML</i>, pp. 5338&ndash;5348.</p>
+
+<p class="ref">[2] Oquab, M., Darcet, T., Moutakanni, T., Vo, H., Szafraniec, M., Khalidov, V., Fernandez, P., Haziza, D., Massa, F., El-Nouby, A. and Assran, M., 2024. DINOv2: Learning robust visual features without supervision. <i>TMLR</i>.</p>
+
+<p class="ref">[3] Bissoto, A., Valle, E., and Avila, S., 2020. Debiasing skin lesion datasets and models? Not so fast. <i>CVPR Workshops</i>.</p>
+
+<p class="ref">[4] Tschandl, P., Rosendahl, C., and Kittler, H., 2018. The HAM10000 dataset, a large collection of multi-source dermatoscopic images of common pigmented skin lesions. <i>Scientific Data</i>, 5, 180161.</p>
+
+</body>
+</html>

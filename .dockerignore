@@ -1,0 +1,12 @@
+.git
+.claude
+wandb
+outputs
+data
+__pycache__
+*.pyc
+*.egg-info
+.venv
+venv
+.DS_Store
+*.log
