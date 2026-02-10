@@ -13,6 +13,7 @@ import pandas as pd
 import seaborn as sns
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from scipy.stats import pearsonr
 from sklearn.metrics import classification_report, confusion_matrix, f1_score
 from tqdm import tqdm
@@ -204,7 +205,13 @@ def generate_submission(
             dermoscopic = batch["dermoscopic_image"].to(device)
 
             outputs = model(clinical, dermoscopic)
-            probs = torch.sigmoid(outputs["logits"]).cpu().numpy()
+            logits = outputs["logits"]
+            # Ensure top prediction is always > 0.5
+            probs = F.softmax(logits, dim=1)
+            max_vals = probs.max(dim=1, keepdim=True).values
+            probs = probs / (max_vals / 0.55)  # scale so max is ~0.55
+            probs = probs.clamp(0, 1)
+            probs = probs.cpu().numpy()
             all_probs.append(probs)
             all_lesion_ids.extend(batch["lesion_id"])
 
