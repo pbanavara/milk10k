@@ -12,10 +12,6 @@ venv/
 .venv/
 env/
 
-# Outputs (generated at runtime)
-outputs/
-wandb/
-
 # IDE
 .idea/
 .vscode/

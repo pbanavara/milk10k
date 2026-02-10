@@ -1,0 +1,44 @@
+{
+  "os": "Linux-6.11.0-1016-nvidia-64k-aarch64-with-glibc2.39",
+  "python": "CPython 3.12.3",
+  "startedAt": "2026-02-09T19:00:09.639859Z",
+  "args": [
+    "--config",
+    "configs/default.yaml",
+    "--overrides",
+    "training.concept_loss_weight=10.0"
+  ],
+  "program": "-m src.train",
+  "git": {
+    "remote": "git@github.com:pbanavara/milk10k.git",
+    "commit": "959f6c95c666f1e12f17d76dbae706b47619e46a"
+  },
+  "email": "pbanavara@gmail.com",
+  "root": "/home/ubuntu/milk10k",
+  "host": "192-222-59-13",
+  "executable": "/usr/bin/python",
+  "cpu_count": 64,
+  "cpu_count_logical": 64,
+  "gpu": "NVIDIA GH200 480GB",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "4259206574080",
+      "used": "30354341888"
+    }
+  },
+  "memory": {
+    "total": "564440989696"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA GH200 480GB",
+      "memoryTotal": "102625181696",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-f8dc27ae-85cb-f760-3964-2eb71d59273b"
+    }
+  ],
+  "cudaVersion": "12.8",
+  "writerId": "mzpo4saf67fsrne7fk1tocanvmutslhj"
+}

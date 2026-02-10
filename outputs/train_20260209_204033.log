@@ -1,0 +1,87 @@
+2026-02-09 20:40:33 [INFO] Logging to ./outputs/train_20260209_204033.log
+2026-02-09 20:40:33 [INFO] Config: {'data': {'images_dir': './data/images_train', 'metadata_csv': './data/MILK10k_Training_Metadata.csv', 'groundtruth_csv': './data/MILK10k_Training_GroundTruth.csv', 'supplement_csv': './data/MILK10k_Training_Supplement.csv', 'image_size': 224, 'batch_size': 64, 'num_workers': 8, 'val_split': 0.2, 'seed': 42}, 'model': {'backbone': 'dinov2_vitl14', 'backbone_dim': 1024, 'fusion_dim': 512, 'num_concepts': 7, 'num_classes': 11, 'variant': 'hybrid', 'residual_dim': 16, 'dropout': 0.2}, 'training': {'phase1_epochs': 10, 'phase2_epochs': 30, 'phase1_lr': 0.001, 'phase2_backbone_lr': 2e-06, 'phase2_head_lr': 0.0001, 'weight_decay': 0.05, 'label_smoothing': 0.0, 'concept_loss_weight': 5.0, 'classification_loss_weight': 1.0, 'grad_clip_norm': 1.0, 'early_stopping_patience': 7, 'use_amp': True, 'amp_dtype': 'bfloat16'}, 'logging': {'project_name': 'milk10k-cbm', 'save_dir': './outputs', 'log_interval': 10}}
+2026-02-09 20:40:34 [INFO] Device: cuda
+2026-02-09 20:40:34 [INFO] GPU: NVIDIA GH200 480GB (94.5 GB)
+2026-02-09 20:40:34 [INFO] Train batches: 65, Val batches: 17
+2026-02-09 20:40:34 [INFO] using MLP layer as FFN
+2026-02-09 20:40:36 [INFO] Model variant: hybrid
+2026-02-09 20:40:36 [INFO] Class weights: {'AKIEC': 0.17661042511463165, 'BCC': 0.02121846005320549, 'BEN_OTH': 1.2162035703659058, 'BKL': 0.09836940467357635, 'DF': 1.0290952920913696, 'INF': 1.0702590942382812, 'MAL_OTH': 5.9458842277526855, 'MEL': 0.11891768127679825, 'NV': 0.07173318415880203, 'SCCKA': 0.11313521862030029, 'VASC': 1.1385735273361206}
+2026-02-09 20:40:36 [INFO] AMP: True, dtype: torch.bfloat16, GradScaler: False
+2026-02-09 20:40:37 [INFO] === Phase 1: Frozen backbone ===
+2026-02-09 20:40:52 [INFO] Phase 1 | Epoch   1 | Loss: 1.5491 | Concept: 0.0422 | Cls: 1.3382 | Val Loss: 3.0749 | Val F1: 0.0192 | LR: 1.00e-03
+2026-02-09 20:40:53 [INFO]   New best model saved (F1: 0.0192)
+2026-02-09 20:41:06 [INFO] Phase 1 | Epoch   2 | Loss: 0.7819 | Concept: 0.0289 | Cls: 0.6374 | Val Loss: 3.0124 | Val F1: 0.0344 | LR: 1.00e-03
+2026-02-09 20:41:07 [INFO]   New best model saved (F1: 0.0344)
+2026-02-09 20:41:21 [INFO] Phase 1 | Epoch   3 | Loss: 0.5561 | Concept: 0.0253 | Cls: 0.4295 | Val Loss: 2.6809 | Val F1: 0.0761 | LR: 1.00e-03
+2026-02-09 20:41:22 [INFO]   New best model saved (F1: 0.0761)
+2026-02-09 20:41:36 [INFO] Phase 1 | Epoch   4 | Loss: 0.4903 | Concept: 0.0235 | Cls: 0.3730 | Val Loss: 2.8283 | Val F1: 0.1221 | LR: 1.00e-03
+2026-02-09 20:41:37 [INFO]   New best model saved (F1: 0.1221)
+2026-02-09 20:41:51 [INFO] Phase 1 | Epoch   5 | Loss: 0.4221 | Concept: 0.0228 | Cls: 0.3082 | Val Loss: 2.5428 | Val F1: 0.1472 | LR: 1.00e-03
+2026-02-09 20:41:51 [INFO]   Per-class F1: AKIEC: 0.233 | BCC: 0.000 | BEN_OTH: 0.176 | BKL: 0.000 | DF: 0.044 | INF: 0.108 | MAL_OTH: 0.000 | MEL: 0.278 | NV: 0.335 | SCCKA: 0.333 | VASC: 0.111
+2026-02-09 20:41:52 [INFO]   New best model saved (F1: 0.1472)
+2026-02-09 20:42:06 [INFO] Phase 1 | Epoch   6 | Loss: 0.3643 | Concept: 0.0221 | Cls: 0.2540 | Val Loss: 2.6400 | Val F1: 0.1560 | LR: 1.00e-03
+2026-02-09 20:42:06 [INFO]   New best model saved (F1: 0.1560)
+2026-02-09 20:42:20 [INFO] Phase 1 | Epoch   7 | Loss: 0.3673 | Concept: 0.0214 | Cls: 0.2603 | Val Loss: 2.5435 | Val F1: 0.1548 | LR: 1.00e-03
+2026-02-09 20:42:20 [INFO]   No improvement (1/7)
+2026-02-09 20:42:34 [INFO] Phase 1 | Epoch   8 | Loss: 0.3121 | Concept: 0.0211 | Cls: 0.2065 | Val Loss: 2.6304 | Val F1: 0.1892 | LR: 1.00e-03
+2026-02-09 20:42:35 [INFO]   New best model saved (F1: 0.1892)
+2026-02-09 20:42:49 [INFO] Phase 1 | Epoch   9 | Loss: 0.3351 | Concept: 0.0206 | Cls: 0.2321 | Val Loss: 2.5048 | Val F1: 0.1707 | LR: 1.00e-03
+2026-02-09 20:42:49 [INFO]   No improvement (1/7)
+2026-02-09 20:43:03 [INFO] Phase 1 | Epoch  10 | Loss: 0.2857 | Concept: 0.0192 | Cls: 0.1895 | Val Loss: 2.4500 | Val F1: 0.1913 | LR: 1.00e-03
+2026-02-09 20:43:03 [INFO]   Per-class F1: AKIEC: 0.225 | BCC: 0.000 | BEN_OTH: 0.118 | BKL: 0.096 | DF: 0.082 | INF: 0.100 | MAL_OTH: 0.000 | MEL: 0.380 | NV: 0.511 | SCCKA: 0.419 | VASC: 0.172
+2026-02-09 20:43:04 [INFO]   New best model saved (F1: 0.1913)
+2026-02-09 20:43:04 [INFO] === Phase 2: Full fine-tuning ===
+2026-02-09 20:43:30 [INFO] Phase 2 | Epoch   1 | Loss: 0.2551 | Concept: 0.0188 | Cls: 0.1611 | Val Loss: 2.4366 | Val F1: 0.1745 | LR: 1.34e-06
+2026-02-09 20:43:30 [INFO]   No improvement (1/7)
+2026-02-09 20:43:54 [INFO] Phase 2 | Epoch   2 | Loss: 0.2166 | Concept: 0.0176 | Cls: 0.1286 | Val Loss: 2.5467 | Val F1: 0.2017 | LR: 2.00e-06
+2026-02-09 20:43:56 [INFO]   New best model saved (F1: 0.2017)
+2026-02-09 20:44:21 [INFO] Phase 2 | Epoch   3 | Loss: 0.1876 | Concept: 0.0164 | Cls: 0.1057 | Val Loss: 2.4421 | Val F1: 0.2382 | LR: 1.99e-06
+2026-02-09 20:44:23 [INFO]   New best model saved (F1: 0.2382)
+2026-02-09 20:44:48 [INFO] Phase 2 | Epoch   4 | Loss: 0.1967 | Concept: 0.0160 | Cls: 0.1167 | Val Loss: 2.5166 | Val F1: 0.2398 | LR: 1.96e-06
+2026-02-09 20:44:50 [INFO]   New best model saved (F1: 0.2398)
+2026-02-09 20:45:15 [INFO] Phase 2 | Epoch   5 | Loss: 0.1746 | Concept: 0.0156 | Cls: 0.0966 | Val Loss: 2.2818 | Val F1: 0.2509 | LR: 1.93e-06
+2026-02-09 20:45:15 [INFO]   Per-class F1: AKIEC: 0.222 | BCC: 0.000 | BEN_OTH: 0.375 | BKL: 0.137 | DF: 0.108 | INF: 0.186 | MAL_OTH: 0.000 | MEL: 0.432 | NV: 0.590 | SCCKA: 0.404 | VASC: 0.308
+2026-02-09 20:45:17 [INFO]   New best model saved (F1: 0.2509)
+2026-02-09 20:45:42 [INFO] Phase 2 | Epoch   6 | Loss: 0.1654 | Concept: 0.0143 | Cls: 0.0937 | Val Loss: 2.2479 | Val F1: 0.2381 | LR: 1.88e-06
+2026-02-09 20:45:42 [INFO]   No improvement (1/7)
+2026-02-09 20:46:06 [INFO] Phase 2 | Epoch   7 | Loss: 0.1512 | Concept: 0.0140 | Cls: 0.0813 | Val Loss: 2.3876 | Val F1: 0.2472 | LR: 1.82e-06
+2026-02-09 20:46:06 [INFO]   No improvement (2/7)
+2026-02-09 20:46:31 [INFO] Phase 2 | Epoch   8 | Loss: 0.1418 | Concept: 0.0135 | Cls: 0.0743 | Val Loss: 2.3358 | Val F1: 0.2524 | LR: 1.75e-06
+2026-02-09 20:46:33 [INFO]   New best model saved (F1: 0.2524)
+2026-02-09 20:46:58 [INFO] Phase 2 | Epoch   9 | Loss: 0.1438 | Concept: 0.0135 | Cls: 0.0763 | Val Loss: 2.3043 | Val F1: 0.2629 | LR: 1.68e-06
+2026-02-09 20:47:00 [INFO]   New best model saved (F1: 0.2629)
+2026-02-09 20:47:25 [INFO] Phase 2 | Epoch  10 | Loss: 0.1358 | Concept: 0.0127 | Cls: 0.0725 | Val Loss: 2.3073 | Val F1: 0.2567 | LR: 1.59e-06
+2026-02-09 20:47:25 [INFO]   Per-class F1: AKIEC: 0.218 | BCC: 0.000 | BEN_OTH: 0.308 | BKL: 0.193 | DF: 0.250 | INF: 0.162 | MAL_OTH: 0.000 | MEL: 0.419 | NV: 0.613 | SCCKA: 0.362 | VASC: 0.300
+2026-02-09 20:47:25 [INFO]   No improvement (1/7)
+2026-02-09 20:47:49 [INFO] Phase 2 | Epoch  11 | Loss: 0.1350 | Concept: 0.0126 | Cls: 0.0717 | Val Loss: 2.2580 | Val F1: 0.2628 | LR: 1.50e-06
+2026-02-09 20:47:49 [INFO]   No improvement (2/7)
+2026-02-09 20:48:14 [INFO] Phase 2 | Epoch  12 | Loss: 0.1317 | Concept: 0.0122 | Cls: 0.0704 | Val Loss: 2.3338 | Val F1: 0.2908 | LR: 1.40e-06
+2026-02-09 20:48:16 [INFO]   New best model saved (F1: 0.2908)
+2026-02-09 20:48:41 [INFO] Phase 2 | Epoch  13 | Loss: 0.1255 | Concept: 0.0120 | Cls: 0.0654 | Val Loss: 2.3451 | Val F1: 0.2961 | LR: 1.30e-06
+2026-02-09 20:48:43 [INFO]   New best model saved (F1: 0.2961)
+2026-02-09 20:49:08 [INFO] Phase 2 | Epoch  14 | Loss: 0.1297 | Concept: 0.0119 | Cls: 0.0703 | Val Loss: 2.3894 | Val F1: 0.3027 | LR: 1.19e-06
+2026-02-09 20:49:10 [INFO]   New best model saved (F1: 0.3027)
+2026-02-09 20:49:35 [INFO] Phase 2 | Epoch  15 | Loss: 0.1178 | Concept: 0.0116 | Cls: 0.0599 | Val Loss: 2.4447 | Val F1: 0.3093 | LR: 1.08e-06
+2026-02-09 20:49:35 [INFO]   Per-class F1: AKIEC: 0.211 | BCC: 0.000 | BEN_OTH: 0.400 | BKL: 0.243 | DF: 0.368 | INF: 0.308 | MAL_OTH: 0.000 | MEL: 0.436 | NV: 0.554 | SCCKA: 0.421 | VASC: 0.462
+2026-02-09 20:49:37 [INFO]   New best model saved (F1: 0.3093)
+2026-02-09 20:50:01 [INFO] Phase 2 | Epoch  16 | Loss: 0.1157 | Concept: 0.0110 | Cls: 0.0606 | Val Loss: 2.3416 | Val F1: 0.2925 | LR: 9.72e-07
+2026-02-09 20:50:01 [INFO]   No improvement (1/7)
+2026-02-09 20:50:26 [INFO] Phase 2 | Epoch  17 | Loss: 0.1268 | Concept: 0.0109 | Cls: 0.0722 | Val Loss: 2.4546 | Val F1: 0.3145 | LR: 8.62e-07
+2026-02-09 20:50:28 [INFO]   New best model saved (F1: 0.3145)
+2026-02-09 20:50:53 [INFO] Phase 2 | Epoch  18 | Loss: 0.1168 | Concept: 0.0110 | Cls: 0.0619 | Val Loss: 2.3691 | Val F1: 0.2917 | LR: 7.54e-07
+2026-02-09 20:50:53 [INFO]   No improvement (1/7)
+2026-02-09 20:51:17 [INFO] Phase 2 | Epoch  19 | Loss: 0.1124 | Concept: 0.0106 | Cls: 0.0593 | Val Loss: 2.5109 | Val F1: 0.3066 | LR: 6.49e-07
+2026-02-09 20:51:17 [INFO]   No improvement (2/7)
+2026-02-09 20:51:42 [INFO] Phase 2 | Epoch  20 | Loss: 0.1119 | Concept: 0.0106 | Cls: 0.0590 | Val Loss: 2.3041 | Val F1: 0.2972 | LR: 5.48e-07
+2026-02-09 20:51:42 [INFO]   Per-class F1: AKIEC: 0.246 | BCC: 0.000 | BEN_OTH: 0.333 | BKL: 0.201 | DF: 0.255 | INF: 0.244 | MAL_OTH: 0.000 | MEL: 0.474 | NV: 0.656 | SCCKA: 0.459 | VASC: 0.400
+2026-02-09 20:51:42 [INFO]   No improvement (3/7)
+2026-02-09 20:52:06 [INFO] Phase 2 | Epoch  21 | Loss: 0.1081 | Concept: 0.0105 | Cls: 0.0556 | Val Loss: 2.3679 | Val F1: 0.2927 | LR: 4.53e-07
+2026-02-09 20:52:06 [INFO]   No improvement (4/7)
+2026-02-09 20:52:31 [INFO] Phase 2 | Epoch  22 | Loss: 0.1080 | Concept: 0.0105 | Cls: 0.0556 | Val Loss: 2.3548 | Val F1: 0.2939 | LR: 3.64e-07
+2026-02-09 20:52:31 [INFO]   No improvement (5/7)
+2026-02-09 20:52:55 [INFO] Phase 2 | Epoch  23 | Loss: 0.1105 | Concept: 0.0105 | Cls: 0.0580 | Val Loss: 2.4090 | Val F1: 0.3111 | LR: 2.83e-07
+2026-02-09 20:52:55 [INFO]   No improvement (6/7)
+2026-02-09 20:53:20 [INFO] Phase 2 | Epoch  24 | Loss: 0.0999 | Concept: 0.0100 | Cls: 0.0501 | Val Loss: 2.3883 | Val F1: 0.3045 | LR: 2.11e-07
+2026-02-09 20:53:20 [INFO]   No improvement (7/7)
+2026-02-09 20:53:20 [INFO] Early stopping at epoch 24
+2026-02-09 20:53:20 [INFO] Training complete. Best macro F1: 0.3145

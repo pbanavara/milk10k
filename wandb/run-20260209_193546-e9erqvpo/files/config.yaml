@@ -1,0 +1,99 @@
+_wandb:
+    value:
+        cli_version: 0.24.2
+        e:
+            qm0tbz6qxsplhtauqdqn4okh9xccmuww:
+                args:
+                    - --config
+                    - configs/default.yaml
+                    - --overrides
+                    - training.concept_loss_weight=10.0
+                cpu_count: 64
+                cpu_count_logical: 64
+                cudaVersion: "12.8"
+                disk:
+                    /:
+                        total: "4259206574080"
+                        used: "30356533248"
+                email: pbanavara@gmail.com
+                executable: /usr/bin/python
+                git:
+                    commit: 1b131867122513448f965fe49a09a48157787881
+                    remote: git@github.com:pbanavara/milk10k.git
+                gpu: NVIDIA GH200 480GB
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Hopper
+                      cudaCores: 16896
+                      memoryTotal: "102625181696"
+                      name: NVIDIA GH200 480GB
+                      uuid: GPU-f8dc27ae-85cb-f760-3964-2eb71d59273b
+                host: 192-222-59-13
+                memory:
+                    total: "564440989696"
+                os: Linux-6.11.0-1016-nvidia-64k-aarch64-with-glibc2.39
+                program: -m src.train
+                python: CPython 3.12.3
+                root: /home/ubuntu/milk10k
+                startedAt: "2026-02-09T19:35:46.516604Z"
+                writerId: qm0tbz6qxsplhtauqdqn4okh9xccmuww
+        m: []
+        python_version: 3.12.3
+        t:
+            "1":
+                - 1
+                - 5
+                - 41
+                - 53
+            "2":
+                - 1
+                - 5
+                - 41
+                - 53
+            "3":
+                - 16
+            "4": 3.12.3
+            "5": 0.24.2
+            "12": 0.24.2
+            "13": linux-aarch64
+data:
+    value:
+        batch_size: 64
+        groundtruth_csv: ./data/MILK10k_Training_GroundTruth.csv
+        image_size: 224
+        images_dir: ./data/images_train
+        metadata_csv: ./data/MILK10k_Training_Metadata.csv
+        num_workers: 8
+        seed: 42
+        supplement_csv: ./data/MILK10k_Training_Supplement.csv
+        val_split: 0.2
+logging:
+    value:
+        log_interval: 10
+        project_name: milk10k-cbm
+        save_dir: ./outputs
+model:
+    value:
+        backbone: dinov2_vitl14
+        backbone_dim: 1024
+        dropout: 0.5
+        fusion_dim: 512
+        num_classes: 11
+        num_concepts: 7
+        residual_dim: 16
+        variant: hybrid
+training:
+    value:
+        amp_dtype: bfloat16
+        classification_loss_weight: 1
+        concept_loss_weight: 10
+        early_stopping_patience: 7
+        grad_clip_norm: 1
+        label_smoothing: 0.1
+        phase1_epochs: 10
+        phase1_lr: 0.001
+        phase2_backbone_lr: 2e-06
+        phase2_epochs: 30
+        phase2_head_lr: 0.0001
+        use_amp: true
+        weight_decay: 0.1
