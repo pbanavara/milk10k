@@ -206,12 +206,15 @@ def generate_submission(
 
             outputs = model(clinical, dermoscopic)
             logits = outputs["logits"]
-            # Ensure top prediction is always > 0.5
+            # Keep softmax for relative confidence, then take argmax
+            # Set top class to 0.55, rest to 0 — guarantees exactly
+            # 1 prediction per row above the 0.5 threshold
             probs = F.softmax(logits, dim=1)
-            max_vals = probs.max(dim=1, keepdim=True).values
-            probs = probs / (max_vals / 0.55)  # scale so max is ~0.55
-            probs = probs.clamp(0, 1)
-            probs = probs.cpu().numpy()
+            submission_probs = torch.zeros_like(probs)
+            top_class = probs.argmax(dim=1)
+            for i in range(len(probs)):
+                submission_probs[i, top_class[i]] = 0.55
+            probs = submission_probs.cpu().numpy()
             all_probs.append(probs)
             all_lesion_ids.extend(batch["lesion_id"])
 
