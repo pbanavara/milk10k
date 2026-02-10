@@ -204,7 +204,7 @@ def generate_submission(
             dermoscopic = batch["dermoscopic_image"].to(device)
 
             outputs = model(clinical, dermoscopic)
-            probs = torch.softmax(outputs["logits"], dim=1).cpu().numpy()
+            probs = torch.sigmoid(outputs["logits"]).cpu().numpy()
             all_probs.append(probs)
             all_lesion_ids.extend(batch["lesion_id"])
 
